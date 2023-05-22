@@ -1,9 +1,10 @@
 <?php
-require_once( '../assets/initializer.php' );
+require_once( '../../assets/initializer.php' );
 $data = ( array ) json_decode( file_get_contents( 'php://input' ), true );
 
-$user = new Users( $db );
+$Product = new Product( $db );
 
+#  Check for rge requests method
 if ( $_SERVER[ 'REQUEST_METHOD' ] !== 'POST' ) {
     header( 'HTTP/1.1 405 Method Not Allowed' );
     header( 'Allow: POST' );
@@ -11,7 +12,7 @@ if ( $_SERVER[ 'REQUEST_METHOD' ] !== 'POST' ) {
 }
 
 #  Check for params  if matches required parametes
-$validKeys = [ 'name', 'mail', 'phone', 'address', 'pword' ];
+$validKeys = [ 'apptoken', 'productToken', 'usertoken', 'orderid'];
 $invalidKeys = array_diff( array_keys( $data ), $validKeys );
 if ( !empty( $invalidKeys ) ) {
     foreach ( $invalidKeys as $key ) {
@@ -20,7 +21,7 @@ if ( !empty( $invalidKeys ) ) {
 
     if ( !empty( $errors ) ) {
 
-        $user->respondUnprocessableEntity( $errors );
+        $Product->respondUnprocessableEntity( $errors );
         return;
     }
 
@@ -33,14 +34,16 @@ foreach ( $validKeys as $key ) {
     }
     if ( !empty( $errors ) ) {
 
-        $user->respondUnprocessableEntity( $errors );
+        $Product->respondUnprocessableEntity( $errors );
         return;
     } else {
-        $data[ $key ] = $user->sanitizeInput( $data[ $key ] );
+        $data[ $key ] = $Product->sanitizeInput( $data[ $key ] );
         # Sanitize input
     }
 }
-$registerUser = $user->registerUser( $data );
-unset( $user );
+#Your method should be here
+$acknowledPaidOnceOrder = $Product->acknowledPaidOnceOrder($data);
+
+unset( $Product );
 unset( $db );
 

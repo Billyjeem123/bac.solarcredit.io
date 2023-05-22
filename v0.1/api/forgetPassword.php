@@ -5,7 +5,7 @@ $data = ( array ) json_decode( file_get_contents( 'php://input' ), true );
 $user = new Users( $db );
 
 
-$validKeys = ['mail'];
+$validKeys = ['mail','apptoken'];
 $errors = [];
 
 if ( $_SERVER[ 'REQUEST_METHOD' ] !== 'POST' ) {

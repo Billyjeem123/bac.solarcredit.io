@@ -11,7 +11,7 @@ if ( $_SERVER[ 'REQUEST_METHOD' ] !== 'POST' ) {
 }
 
 #  Check for params  if matches required parametes
-$validKeys = [ 'mail', 'pword' ];
+$validKeys = [ 'mail', 'pword', 'apptoken', 'longtitude', 'latitude'];
 $invalidKeys = array_diff( array_keys( $data ), $validKeys );
 if ( !empty( $invalidKeys ) ) {
     foreach ( $invalidKeys as $key ) {
@@ -39,7 +39,14 @@ foreach ( $validKeys as $key ) {
         # Sanitize input
     }
 }
-$registerUser = $user->tryLogin( $data );
+$loggedInUser  = $user->tryLogin( $data );
+if ( $loggedInUser ) {
+    $user->outputData( true, 'Login successful',  $loggedInUser );
+    exit;
+} else {
+    $user->outputData( false, $_SESSION[ 'err' ],  null );
+
+}
 unset( $user );
 unset( $db );
 

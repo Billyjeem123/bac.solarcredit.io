@@ -1,5 +1,5 @@
 <?php
-require_once( '../assets/initializer.php' );
+require_once( '../../assets/initializer.php' );
 $data = ( array ) json_decode( file_get_contents( 'php://input' ), true );
 
 $user = new Users( $db );
@@ -11,7 +11,7 @@ if ( $_SERVER[ 'REQUEST_METHOD' ] !== 'POST' ) {
 }
 
 #  Check for params  if matches required parametes
-$validKeys = [ 'name', 'mail', 'phone', 'address', 'pword' ];
+$validKeys = [ 'apptoken'];
 $invalidKeys = array_diff( array_keys( $data ), $validKeys );
 if ( !empty( $invalidKeys ) ) {
     foreach ( $invalidKeys as $key ) {
@@ -40,7 +40,13 @@ foreach ( $validKeys as $key ) {
         # Sanitize input
     }
 }
-$registerUser = $user->registerUser( $data[$key] );
+$getAllUsers = $user->getAllUsers();
+if ( $getAllUsers ) {
+    $user->outputData( true, "Fetceed All Users", $getAllUsers );
+} else {
+    $user->outputData( false, $_SESSION[ 'err' ],  null );
+
+}
 unset( $user );
 unset( $db );
 

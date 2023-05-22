@@ -3,8 +3,8 @@ header( 'Access-Control-Allow-Origin: *' );
 header( 'Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS' );
 header( 'Access-Control-Allow-Headers: Content-Type, Authorization, Content-Length, X-Requested-With' );
 header( 'Content-Type: application/json;charset=utf-8' );
-
-require_once($_SERVER[ 'DOCUMENT_ROOT' ] . '/boiler/vendor/autoload.php' );
+session_start();
+require_once($_SERVER[ 'DOCUMENT_ROOT' ] . '/solar/vendor/autoload.php' );
 set_error_handler( 'ErrorHandler::handleError' );
 set_exception_handler( 'ErrorHandler::handleException' );
 

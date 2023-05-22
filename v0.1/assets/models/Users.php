@@ -14,23 +14,25 @@ class Users extends AbstractClasses
     public function registerUser( array $data )
  {
 
-        $phone = ( int ) $data[ 'phone' ];
-
         $checkIfMailExists = $this->checkIfMailExists( $data[ 'mail' ] );
         if ( $checkIfMailExists ) {
             $output = $this->outputData( false, 'Email already exists', null );
+            exit;
         }
         $token = ( int ) $this->token();
         $passHash = password_hash( $data[ 'pword' ], PASSWORD_DEFAULT );
         #  Prepare the fields and values for the insert query
         $fields = [
-            'name' => $data[ 'name' ],
+            'fname' => $data[ 'fname' ],
             'mail' => $data[ 'mail' ],
-            'phone' => $phone,
-            'address' => $data[ 'address' ],
-            'pword'  => $passHash,
-            'usertoken' => $token
-            
+            'phone'=> $data[ 'phone' ],
+            'pword' => $passHash,
+            'abtUs'  => $data[ 'abtUs' ],
+            'usertoken' => $token,
+            'otp' => $token,
+            'userType' => 'Users',
+            'time' => time()
+
         ];
 
         # Build the SQL query
@@ -49,9 +51,12 @@ class Users extends AbstractClasses
             }
             $stmt->execute();
 
+            $this->createWallet( $token );
+            #Create wallet after registration
+
             $mailer = new Mailer();
 
-            if ( $mailer->sendOTPToken( $data[ 'mail' ], $data[ 'name' ], '123' ) ) {
+            if ( $mailer->sendOTPToken( $data[ 'mail' ], $data[ 'fname' ], $token ) ) {
                 unset( $mailer );
             }
 
@@ -59,83 +64,61 @@ class Users extends AbstractClasses
             $output = $this->outputData( true, 'Account created', null );
         } catch ( PDOException $e ) {
 
-            $output  = $this->respondWithInternalError( 'Error: ' . $e->getMessage());
+            $output  = $this->respondWithInternalError( 'Error: ' . $e->getMessage() );
         }
         finally {
             $this->conn = null;
+            unset( $mailer );
 
         }
 
         return $output;
     }
 
-    #  SaveProfileImage::This methids save users profile image::
+    #Create wallet::Tgis method create wallet on the platform
 
-    public function saveProfileImage( array $profileImage ):array
- {
-        $imageInfo = array();
-
-        # Get the image file information
-        $profileImageName = $profileImage[ 'name' ];
-        $profileImageTmp = $profileImage[ 'tmp_name' ];
-        # Check if at least profile  image file is present
-        if ( ( !isset( $propimage ) || empty( $propimage ) ) ) {
-            http_response_code( 400 );
-            $this->outputData( false, 'Please select an image to upload', null );
-            return null;
+    public function createWallet( int $usertoken ) {
+        $amount = '0.00';
+        try {
+            $sql = 'INSERT INTO tblwallet (usertoken, amount) VALUES (:usertoken, :amount)';
+            $stmt = $this->conn->prepare( $sql );
+            $stmt->bindParam( ':usertoken', $usertoken );
+            $stmt->bindParam( ':amount', $amount );
+            $stmt->execute();
+            return true;
+        } catch ( PDOException $e ) {
+            $this->respondWithInternalError( 'Error: ' . $e->getMessage() );
+            return false;
         }
-
-        # Valid file extensions
-        $valid_extensions = array( 'jpg', 'jpeg', 'png', 'gif' );
-
-        # Test for profile image file extension
-        if ( isset( $propimage ) && !empty( $propimage ) ) {
-            $propimage_ext = strtolower( pathinfo( $propimage, PATHINFO_EXTENSION ) );
-            if ( !in_array( $propimage_ext, $valid_extensions ) ) {
-                http_response_code( 422 );
-                $this->outputData( false, 'Only JPG, JPEG, PNG and GIF files are allowed.', null );
-                return null;
-            } else {
-                # Save the property image  file
-                $propnewFilename = time() . '_' . $propimage;
-                $newProfileImageName = $_ENV[ 'APP_NAME' ] . '_' . $propnewFilename;
-                $profileImagePath = ( $_SERVER[ 'DOCUMENT_ROOT' ] . '/uploads/' . $newProfileImageName );
-                if ( !file_exists( $profileImageName ) || !is_readable( $profileImageTmp ) ) {
-                    http_response_code( 422 );
-                    $this->outputData( false, 'Unable to upload the profile image. Please try again later.', null );
-                    return null;
-                } else if ( move_uploaded_file( $profileImageTmp, $profileImagePath ) ) {
-                    $imageInfo[ 'profileImage' ] = $newProfileImageName;
-                } else {
-                    $propimage = null;
-                }
-            }
+        finally {
+            $stmt = null;
+            $this->conn = null;
         }
-        http_response_code( 200 );
-        return $imageInfo;
     }
 
     # updateUserData function updates user biodata
 
-    public function updateUserData( int $id, array $data ): int {
-
+    public function updateUserData( int $usertoken, array $data ) {
         try {
-            $updateQuery = 'UPDATE users SET ';
+            $updateQuery = 'UPDATE tblusers SET ';
             $params = array();
             foreach ( $data as $key => $value ) {
-                $updateQuery .= $key . ' = ?, ';
-                $params[] = $value;
+                if ( $key !== 'apptoken' ) {
+
+                    $updateQuery .= $key . ' = ?, ';
+                    $params[] = $value;
+                }
             }
-            $updateQuery = rtrim( $updateQuery, ', ' ) . ' WHERE id = ?';
-            $params[] = $id;
+            $updateQuery = rtrim( $updateQuery, ', ' ) . ' WHERE usertoken = ?';
+            $params[] = $usertoken;
 
             $stmt = $this->conn->prepare( $updateQuery );
             $stmt->execute( $params );
 
-            return $stmt->rowCount();
+            $_SESSION[ 'err' ] = 'Record uodated';
         } catch ( PDOException $e ) {
             $_SESSION[ 'err' ] = $e->getMessage();
-            $this->respondWithInternalError($_SESSION[ 'err' ] );
+            $this->respondWithInternalError( $_SESSION[ 'err' ] );
             return null;
         }
         finally {
@@ -158,29 +141,50 @@ class Users extends AbstractClasses
 
             $user = $stmt->fetch( PDO::FETCH_ASSOC );
 
+            if ( $user[ 'status' ] != 1 ) {
+
+                $unverifiedData = array(
+                    'kycStatus'=>$this->getkycStatus( $user[ 'usertoken' ] ),
+                    'regStatus'=>( $user[ 'status' ] == 1 ) ? true : false
+
+                );
+                $this->outputData( false, 'Account not verified.verify account by entering  OTP sent to yout mail', $unverifiedData );
+                exit;
+            }
+
             if ( !password_verify( $data[ 'pword' ], $user[ 'pword' ] ) ) {
                 $this->outputData( false, "Incorrect password for $data[mail]", null );
-                return false;
+                exit;
             }
 
             if ( $user ) {
+
+                $getStatus =  $this->getkycStatus( $user[ 'usertoken' ] );
+                $getAccountBalance =  $this->getAccountBalance( $user[ 'usertoken' ] );
+                $verifyNextOfKin = $this->verifyNextOfKin( $user[ 'usertoken' ] );
                 $userData = [
-                    'name' => $user[ 'name' ],
+                    'fname' => $user[ 'fname' ],
                     'mail' => $user[ 'mail' ],
                     'usertoken' => $user[ 'usertoken' ],
+                    'phone' => $user[ 'phone' ],
+                    'regStatus'=>( $user[ 'status' ] == 1 ) ? true : false,
+                    'userType' => $user[ 'userType' ],
+                    'availableBalance_thousand' => number_format( $getAccountBalance[ 'totalBalannce' ] ),
+                    'nextOfKin' => $verifyNextOfKin,
+                    'kycStatus'=> $getStatus,
+                    'created' => date( 'D d M, Y: H', $user[ 'time' ] )
                 ];
             }
-            $this->outputData( true, 'Login successful',  $userData );
-            return true;
 
         } catch ( PDOException $e ) {
             $_SESSION[ 'err' ] = $e->getMessage();
-            $this->respondWithInternalError($_SESSION[ 'err' ] );
+            $this->respondWithInternalError( $_SESSION[ 'err' ] );
         }
         finally {
             $stmt = null;
             $this->conn = null;
         }
+        return $userData;
     }
 
     private function checkIfMailExists( string $mail ): bool {
@@ -197,10 +201,82 @@ class Users extends AbstractClasses
             }
         } catch ( PDOException $e ) {
             $_SESSION[ 'err' ] = $e->getMessage();
-            $this->respondWithInternalError($_SESSION[ 'err' ] );
+            $this->respondWithInternalError( $_SESSION[ 'err' ] );
         }
         finally {
             $stmt = null;
+        }
+    }
+
+    #VerifyOtp::This method verifies  a user OTP during verification
+
+    public function verifyOtp( array $data ) {
+
+        try {
+            $sql = 'SELECT * FROM tblusers WHERE  mail = :mail';
+            $stmt = $this->conn->prepare( $sql );
+            $stmt->bindParam( ':mail', $data[ 'mail' ], PDO::PARAM_STR );
+            if ( !$stmt->execute() ) {
+                return false;
+            }
+
+            $user = $stmt->fetch( PDO::FETCH_ASSOC );
+            if ( $user[ 'otp' ] != $data[ 'usertoken' ] ) {
+                $this->outputData( false, 'Please enter your correct OTP..', null );
+                exit();
+            }
+            if ( !$this->activateAccount( $data[ 'mail' ] ) ) {
+
+                $this->outputData( false, $_SESSION[ 'err' ], null );
+                exit();
+            }
+            $getStatus =  $this->getkycStatus( $user[ 'usertoken' ] );
+            $userData = [
+                'fname' => $user[ 'fname' ],
+                'mail' => $user[ 'mail' ],
+                'usertoken' => $user[ 'usertoken' ],
+                'phone' => $user[ 'phone' ],
+                'regStatus'=>( $user[ 'status' ] == 1 ) ? true : false,
+                'userType' => $user[ 'userType' ],
+                'kycStatus'=> $getStatus,
+                'created' => date( 'D d M, Y: H', $user[ 'time' ] )
+
+            ];
+
+        } catch ( PDOException $e ) {
+            $_SESSION[ 'err' ] = $e->getMessage();
+            $this->respondWithInternalError( $_SESSION[ 'err' ] );
+        }
+        finally {
+            $stmt = null;
+            $this->conn = null;
+        }
+
+        return $userData;
+
+    }
+
+    #This methid activates User account if during registration verification
+
+    public  function activateAccount( $mail ) {
+        try {
+            $status = 1;
+            $sql = ' UPDATE tblusers SET status = :status WHERE  mail = :mail';
+            $stmt = $this->conn->prepare( $sql );
+            $stmt->bindParam( ':status', $status );
+            $stmt->bindParam( ':mail', $mail );
+            if ( !$stmt->execute() ) {
+                return false;
+            } else {
+                return true;
+            }
+        } catch ( PDOException $e ) {
+            $this->outputData( false, $_SESSION[ 'err' ] = $e->getMessage(), null );
+            return false;
+        }
+        finally {
+            $stmt = null;
+            $this->conn = null;
         }
     }
 
@@ -212,7 +288,7 @@ class Users extends AbstractClasses
         try {
             $sql = 'SELECT pword FROM tblusers WHERE usertoken = :usertoken';
             $stmt = $this->conn->prepare( $sql );
-            $stmt->bindParam( ':usertoken', $data[ 'usertoken' ] , PDO::PARAM_INT);
+            $stmt->bindParam( ':usertoken', $data[ 'usertoken' ], PDO::PARAM_INT );
 
             if ( $stmt->execute() ) {
                 $dbPwd = $stmt->fetchColumn();
@@ -235,7 +311,7 @@ class Users extends AbstractClasses
             }
         } catch ( PDOException $e ) {
             $_SESSION[ 'err' ] = $e->getMessage();
-            $this->respondWithInternalError($_SESSION[ 'err' ] );
+            $this->respondWithInternalError( $_SESSION[ 'err' ] );
         }
         finally {
             $stmt = null;
@@ -252,8 +328,8 @@ class Users extends AbstractClasses
         try {
             $sql = 'UPDATE tblusers SET pword = :pword WHERE usertoken = :usertoken';
             $stmt = $this->conn->prepare( $sql );
-            $stmt->bindParam( ':pword', $pword ,  PDO::PARAM_STR );
-            $stmt->bindParam( ':usertoken', $usertoken ,  PDO::PARAM_INT );
+            $stmt->bindParam( ':pword', $pword,  PDO::PARAM_STR );
+            $stmt->bindParam( ':usertoken', $usertoken,  PDO::PARAM_INT );
             $stmt->execute();
             return true;
         } catch ( PDOException $e ) {
@@ -278,7 +354,7 @@ class Users extends AbstractClasses
         $passHash = password_hash( $token, PASSWORD_DEFAULT );
 
         if ( !$this->resetPasswordInDB( $passHash, $data[ 'mail' ] ) ) {
-            $this->respondWithInternalError( $_SESSION[ 'err' ]);
+            $this->respondWithInternalError( $_SESSION[ 'err' ] );
 
             return false;
         }
@@ -287,7 +363,7 @@ class Users extends AbstractClasses
         $userData = $this->getUserData( $data[ 'mail' ] );
 
         try {
-            if ( $mailer->sendPasswordToUser( $data[ 'mail' ], $userData[ 'name' ], $token ) ) {
+            if ( $mailer->sendPasswordToUser( $data[ 'mail' ], $userData[ 'fname' ], $token ) ) {
                 $this->outputData( true, 'Password sent to mail', null );
                 return true;
 
@@ -306,8 +382,8 @@ class Users extends AbstractClasses
         try {
             $sql = 'UPDATE tblusers SET pword = :pword WHERE mail = :mail';
             $stmt = $this->conn->prepare( $sql );
-            $stmt->bindParam( ':pword', $pword ,  PDO::PARAM_STR );
-            $stmt->bindParam( ':mail', $mail ,  PDO::PARAM_STR );
+            $stmt->bindParam( ':pword', $pword,  PDO::PARAM_STR );
+            $stmt->bindParam( ':mail', $mail,  PDO::PARAM_STR );
             $stmt->execute();
             return true;
         } catch ( PDOException $e ) {
@@ -319,29 +395,50 @@ class Users extends AbstractClasses
         }
     }
 
-    private function getUserData( string $mail ): ?array {
-        $userData = null;
+
+    #getAllUsers::This method fetches AllUsers
+    public function getAllUsers() {
+        $dataArray = array();
+        $sql = 'SELECT fname, mail, usertoken, phone, 
+        status, userType, image, time FROM tblusers ORDER BY id DESC';
+        $stmt = $this->conn->prepare($sql);
+        
         try {
-            $sql = 'SELECT usertoken, name, mail FROM tblusers WHERE mail = :mail';
-            $stmt = $this->conn->prepare( $sql );
-            $stmt->bindParam( ':mail', $mail,  PDO::PARAM_STR );
             $stmt->execute();
-            $user = $stmt->fetch( PDO::FETCH_ASSOC );
-            if ( $user ) {
-                $userData = [
-                    'name' => $user[ 'name' ],
-                    'mail' => $user[ 'mail' ],
-                    'usertoken' => $user[ 'usertoken' ],
+            $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            foreach ($users as $user) {
+                $getStatus = $this->getkycStatus($user['usertoken']) ?? 'null';
+                $getKYCData = $this->getKYCData($user['usertoken']);
+                $getAllHistoryLogs = $this->getAllHistoryLogs($user['usertoken']);
+                $array = [
+                    'fname' => $user['fname'],
+                    'mail' => $user['mail'],
+                    'usertoken' => $user['usertoken'],
+                    'phone' => $user['phone'],
+                    'regStatus'=>( $user[ 'status' ] == 1 ) ? true : false,
+                    'userType' => $user['userType'],
+                    'profileImage' => json_decode($user['image'] ?? ''),
+                    'kycStatus' => $getStatus,
+                    'created' => $this->formatDate($user[ 'time' ]),
+                    'kycData' => $getKYCData,
+                    'getUserHistoryLogs' => $getAllHistoryLogs
                 ];
+    
+                array_push($dataArray, $array);
             }
-        } catch ( PDOException $e ) {
-            $_SESSION[ 'err' ] = $e->getMessage();
-        }
-        finally {
+            
+            
+        } catch (PDOException $e) {
+            $_SESSION['err'] = "Unable to retrieve user data".$e->getMessage();
+            return false;
+        }finally{
             $stmt = null;
             $this->conn = null;
         }
-        return $userData;
+        return $dataArray;
     }
+    
+ 
 
 }

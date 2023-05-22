@@ -4,7 +4,7 @@ $data = ( array ) json_decode( file_get_contents( 'php://input' ), true );
 
 $user = new Users( $db );
 
-$validKeys = [ 'usertoken', 'fpword', 'npword' ];
+$validKeys = [ 'apptoken', 'usertoken', 'fpword', 'npword' ];
 $errors = [];
 
 #   Check if only valid input fields are provided
@@ -29,7 +29,7 @@ foreach ( $validKeys as $key ) {
 }
 
 if ( !empty( $errors ) ) {
-    $this->respondUnprocessableEntity( $errors );
+    $user->respondUnprocessableEntity( $errors );
     return;
 }
 $updatePassword = $user->updatePassword( $data );
