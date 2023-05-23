@@ -14,6 +14,9 @@ require(dirname(__DIR__).'/vendor/autoload.php');
 require_once('reminder/autoDebitProductLoan.php');
 require_once('reminder/autoDebitProductLoanAfterDueDate.php');
 require_once('reminder/remindUserProductLoanADayBeforeDueDate.php');
+require_once('reminder/remindUserProductLoanAWeekBeforeDueDate.php');
+require_once('reminder/remindUserProductLoanAWeekBeforeDueDate.php');
+require_once('reminder/remindUserProductLoanThreeDaysBeforeDueDate.php');
 
 
 #https://bac.solarcredit.io/v0.1/cronejob.php

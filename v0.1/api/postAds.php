@@ -12,7 +12,7 @@ if ( $_SERVER[ 'REQUEST_METHOD' ] !== 'POST' ) {
 }
 
 #  Check for params  if matches required parametes
-$validKeys = [ 'catid', 'location', 'pname', 'phone', 'apptoken', 'pdesc', 'brand', 'condition', 'price', 'pquantity', 'pimage', 'watts', 'usertoken', 'volt', 'unit', 'size' ];
+$validKeys = [ 'catid', 'location', 'pname', 'phone', 'apptoken', 'pdesc', 'brand', 'condition', 'price', 'pquantity', 'pimage', 'usertoken', 'volt', 'unit', 'size' ];
 $invalidKeys = array_diff( array_keys( $data ), $validKeys );
 if ( !empty( $invalidKeys ) ) {
     foreach ( $invalidKeys as $key ) {

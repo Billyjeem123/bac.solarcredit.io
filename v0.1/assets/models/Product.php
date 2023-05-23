@@ -509,6 +509,8 @@ class Product extends AbstractClasses
 
             $this->conn->commit();
 
+            if($getUserType === 0){
+
             $mailer  = new Mailer();
 
             
@@ -519,7 +521,8 @@ class Product extends AbstractClasses
              $errorMessage = date('[Y-m-d H:i:s] ') . "Error sending mail  for " . __METHOD__ . "  " . PHP_EOL . $e->getMessage();
              error_log($errorMessage, 3, 'productmail.log');
          }
-
+        }
+        
             http_response_code( 201 );
             $output = $this->outputData( true, 'Request sent.You will be notified upon approval', null );
         } catch ( PDOException $e ) {

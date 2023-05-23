@@ -1373,9 +1373,9 @@ class Mailer
     
         $body .= "We hope this email finds you well. This is a friendly reminder regarding your  product loan payment ..<br><br>";
     
-        $body .= "  As per our records, the deadline for your loan payment  for  <b> Product <u>$productname</u></b> is tomorrow. Please ensure that your account wallet is funded before or by tomorrow
-    
-        .<br><br>";
+        $body .= "As per our records, the deadline for your loan payment for the following product(s): $productname  is tomorrow, as you have opted for a monthly installment plan..<br><br>";
+
+        $body .= "Please ensure that your account wallet is funded before or by tomorrow. The payment will be automatically debited from your wallet.<br><br>";
     
         $body .= "if you have any questions or concerns regarding your loan, please don't hesitate to reach out to us. Our team is always available to assist you.<br> <br>";
     
@@ -1403,7 +1403,137 @@ class Mailer
 
 
 
-    public function NotifyUserOfProductLoanAWeekToDueDate($email, $fname, $productname)
+    public function NotifyUserOfProductLoanAWeekToDueDate($email, $fname, $boughtBought)
+    {
+        require_once($_SERVER['DOCUMENT_ROOT'] . '/solar/vendor/autoload.php');
+
+        $formattedProductNames = ($boughtBought[0]['productname']);
+
+        $mail = new PHPMailer(true);
+
+        $mail->isSMTP();
+
+        $mail->Host = $_ENV['HOST_NAME'];
+
+        $mail->SMTPAuth = true;
+
+        $mail->Username = $_ENV['SMTP_USERNAME'];
+
+        $mail->Password = $_ENV['SMTP_PWORD'];
+
+        $mail->SMTPSecure = 'ssl';
+
+        $mail->Port = 465;
+
+        $mail->setFrom($_ENV['APP_MAIL'], $_ENV['APP_NAME']);
+
+        $mail->addAddress($email, $fname);
+
+        $mail->isHTML(true);
+
+        $mail->Subject = "[Solar-credit] Upcoming Product Loan Payment Reminder: Due In A Week Time";
+
+        $body = "Dear $fname,<br><br>";
+        
+        $body .= "We hope this email finds you well. This is a friendly reminder regarding your product loan payment.<br><br>";
+        
+        $body .= "As per our records, the scheduled payment deadline for the following product(s) will be due in  week time, as you have opted for a monthly installment plan<br>";
+        $body .= "<ul>";
+        foreach ($boughtBought as $product) {
+            $body .= "<li>Product Name: <b>" . $product['productname'] . "</b></li>";
+            $body .= "<li>Price: <b>" . $product['price'] . "</b></li>";
+            $body .= "<br><br>";
+        }
+        $body .= "</ul>";
+        
+        $body .= "Please ensure that your account wallet is funded before then. The payment will be automatically debited from your wallet.<br><br>";
+        
+        $body .= "If you have any questions or concerns regarding your loan, please don't hesitate to reach out to us. Our team is always available to assist you.<br><br>";
+        
+        $body .= "Thank you for choosing " . $_ENV['APP_NAME'] . " for your financial needs. We look forward to hearing from you soon.<br><br>";
+        
+        $body .= "Best regards,<br><br>";
+        
+        $body .= "Team " . $_ENV['APP_NAME'];
+        
+        $mail->Body = $body;
+
+
+        if (!$mail->send()) {
+            $this->outputData(false, ' Email could not be sent', $mail->ErrorInfo);
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+
+
+    public function NotifyUserOfProductLoanThreeDaysToDueDate($email, $fname, $boughtBought)
+    {
+        require_once($_SERVER['DOCUMENT_ROOT'] . '/solar/vendor/autoload.php');
+
+        $formattedProductNames = ($boughtBought[0]['productname']);
+
+        $mail = new PHPMailer(true);
+
+        $mail->isSMTP();
+
+        $mail->Host = $_ENV['HOST_NAME'];
+
+        $mail->SMTPAuth = true;
+
+        $mail->Username = $_ENV['SMTP_USERNAME'];
+
+        $mail->Password = $_ENV['SMTP_PWORD'];
+
+        $mail->SMTPSecure = 'ssl';
+
+        $mail->Port = 465;
+
+        $mail->setFrom($_ENV['APP_MAIL'], $_ENV['APP_NAME']);
+
+        $mail->addAddress($email, $fname);
+
+        $mail->isHTML(true);
+
+        $mail->Subject = "[Solar-credit] Upcoming Product Loan Payment Reminder: Due In A Three Days Time";
+
+        $body = "Dear $fname,<br><br>";
+        
+        $body .= "We hope this email finds you well. This is a friendly reminder regarding your product loan payment.<br><br>";
+        
+        $body .= "As per our records, the scheduled payment deadline for the following product(s) will be due in Three days time, as you have opted for a monthly installment plan<br>";
+        $body .= "<ul>";
+        foreach ($boughtBought as $product) {
+            $body .= "<li>Product Name: <b>" . $product['productname'] . "</b></li>";
+            $body .= "<li>Price: <b>" . $product['price'] . "</b></li>";
+            $body .= "<br><br>";
+        }
+        $body .= "</ul>";
+        
+        $body .= "Please ensure that your account wallet is funded before or by then. The payment will be automatically debited from your wallet.<br><br>";
+        
+        $body .= "If you have any questions or concerns regarding your loan, please don't hesitate to reach out to us. Our team is always available to assist you.<br><br>";
+        
+        $body .= "Thank you for choosing " . $_ENV['APP_NAME'] . " for your financial needs. We look forward to hearing from you soon.<br><br>";
+        
+        $body .= "Best regards,<br><br>";
+        
+        $body .= "Team " . $_ENV['APP_NAME'];
+        
+        $mail->Body = $body;
+
+
+        if (!$mail->send()) {
+            $this->outputData(false, ' Email could not be sent', $mail->ErrorInfo);
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    public function celebrateProductLoanCompletedSuccesss($email, $fname, $boughtBought)
     {
         require_once($_SERVER['DOCUMENT_ROOT'] . '/solar/vendor/autoload.php');
 
@@ -1429,27 +1559,34 @@ class Mailer
 
         $mail->isHTML(true);
 
-        $mail->Subject = "[Solar-credit] Upcoming Product Loan Payment Reminder: Due in One Week";
+        $mail->Subject = "[Solar-credit]  Your Installment Payments are Complete!";
 
-        $body = "Dear $fname, <br><br>";
-    
-        $body .= "We hope this email finds you well. This is a friendly reminder regarding your  product loan payment ..<br><br>";
-    
-        $body .= "  As per our records, the deadline for your loan payment  for  <b> Product <u>$productname</u></b> will be due in one weeks time. Please ensure that your account wallet is funded before or by tomorrow
-    
-        .<br><br>";
-    
-        $body .= "if you have any questions or concerns regarding your loan, please don't hesitate to reach out to us. Our team is always available to assist you.<br> <br>";
-    
-        $body .= "Please do not hesitate to reach out to us if you have any questions or concerns regarding the your  product loan  plan. We are always here to help.. <br> <br> ";
-    
-        $body .= "Thank you for choosing " . $_ENV['APP_NAME'] . " for your finacial needs.  We look forward to hearing from you soon. <br> <br>";
-    
-        $body .= " Best regards, <br> <br> ";
+        $body = "Dear $fname,<br><br>";
+        
+        $body .= "It's time to celebrate! We are thrilled to inform you that you have successfully completed all your installment payments for the following good(s).<br><br>";
+        $body .= "<ul>";
+        foreach ($boughtBought as $product) {
+            $body .= "<li>Product Name: <b>" . $product['productname'] . "</b></li>";
+            $body .= "<br><br>";
+        }
+        $body .= "</ul>";
+        
+        $body .= "We want to express our sincerest congratulations on reaching this significant milestone. Your commitment and dedication in fulfilling your financial obligations have paid off<br><br>";
 
-        $body .= ' Team ' .  $_ENV['APP_NAME'] . ' ';
+        $body.= "We extend our heartfelt appreciation for choosing us as your preferred provider for installment purchases. Your satisfaction is our utmost priority, and we are committed to delivering exceptional service at every step.<br><br>";
 
+        $body.= "If you have any questions or need further assistance regarding your installment plan or any other matter, our dedicated support team is here to help. We want to ensure that your experience with us continues to be smooth and enjoyable.<br><br>";
+
+        $body .= " If you have any questions or need further assistance regarding your installment plan or any other matter, our dedicated support team is here to help. We want to ensure that your experience with us continues to be smooth and enjoyable.<br><br>";
+        
+        $body .= "Thank you for choosing " . $_ENV['APP_NAME'] . " for your financial needs.<br><br>";
+        
+        $body .= "Best regards,<br><br>";
+        
+        $body .= "Team " . $_ENV['APP_NAME'];
+        
         $mail->Body = $body;
+
 
         if (!$mail->send()) {
             $this->outputData(false, ' Email could not be sent', $mail->ErrorInfo);
