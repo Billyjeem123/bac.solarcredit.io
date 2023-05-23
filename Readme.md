@@ -14,11 +14,9 @@ To access visit [solarcredit](https://documenter.getpostman.com/view/21023738/2s
 ---
 ## Authentication
 
-* This boilerplate uses an (Authorization header) to validate API requests. The Authorization header must be included in all API requests for the request to be processed.
+* This sourcecode  uses an (Authorization header) to validate API requests. The Authorization header must be included in all API requests for the request to be processed.
  
-* To include the Authorization header, make sure to add it to the header section of your API request. Here is an example using cURL
-
----
+* To include the Authorization header, make sure to add it to the header section of your API request.
 
 
 ## Configuration Update

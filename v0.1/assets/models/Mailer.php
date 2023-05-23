@@ -1367,13 +1367,75 @@ class Mailer
 
         $mail->isHTML(true);
 
-        $mail->Subject = "[Solar-credit]Your Product Loan Payment is Due Tomorrow ";
+        $mail->Subject = "[Solar-credit] Upcoming Product Loan Payment Reminder: Due Tomorrow";
 
         $body = "Dear $fname, <br><br>";
     
         $body .= "We hope this email finds you well. This is a friendly reminder regarding your  product loan payment ..<br><br>";
     
-        $body .= "  As per our records, the deadline for your loan payment  for productname $productname is tomorrow. Please ensure that your account wallet is funded before or by tomorrow
+        $body .= "  As per our records, the deadline for your loan payment  for  <b> Product <u>$productname</u></b> is tomorrow. Please ensure that your account wallet is funded before or by tomorrow
+    
+        .<br><br>";
+    
+        $body .= "if you have any questions or concerns regarding your loan, please don't hesitate to reach out to us. Our team is always available to assist you.<br> <br>";
+    
+        $body .= "Please do not hesitate to reach out to us if you have any questions or concerns regarding the your  product loan  plan. We are always here to help.. <br> <br> ";
+    
+        $body .= "Thank you for choosing " . $_ENV['APP_NAME'] . " for your finacial needs.  We look forward to hearing from you soon. <br> <br>";
+    
+        $body .= " Best regards, <br> <br> ";
+
+        $body .= ' Team ' .  $_ENV['APP_NAME'] . ' ';
+
+        $mail->Body = $body;
+
+        if (!$mail->send()) {
+            $this->outputData(false, ' Email could not be sent', $mail->ErrorInfo);
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+
+
+
+
+
+
+    public function NotifyUserOfProductLoanAWeekToDueDate($email, $fname, $productname)
+    {
+        require_once($_SERVER['DOCUMENT_ROOT'] . '/solar/vendor/autoload.php');
+
+        $mail = new PHPMailer(true);
+
+        $mail->isSMTP();
+
+        $mail->Host = $_ENV['HOST_NAME'];
+
+        $mail->SMTPAuth = true;
+
+        $mail->Username = $_ENV['SMTP_USERNAME'];
+
+        $mail->Password = $_ENV['SMTP_PWORD'];
+
+        $mail->SMTPSecure = 'ssl';
+
+        $mail->Port = 465;
+
+        $mail->setFrom($_ENV['APP_MAIL'], $_ENV['APP_NAME']);
+
+        $mail->addAddress($email, $fname);
+
+        $mail->isHTML(true);
+
+        $mail->Subject = "[Solar-credit] Upcoming Product Loan Payment Reminder: Due in One Week";
+
+        $body = "Dear $fname, <br><br>";
+    
+        $body .= "We hope this email finds you well. This is a friendly reminder regarding your  product loan payment ..<br><br>";
+    
+        $body .= "  As per our records, the deadline for your loan payment  for  <b> Product <u>$productname</u></b> will be due in one weeks time. Please ensure that your account wallet is funded before or by tomorrow
     
         .<br><br>";
     

@@ -290,17 +290,33 @@ class ProductRepayment extends AbstractClasses
 
 
        # REMIN USER A  DAY REMINDER BEFORE DUE DATE....................
+       # This function below, i  had to  join loan_product_purchases && tbl_store_allinstallment_product 
+       # Together  mainly to get productname in a single query
 
     public function remindADayBeforeDueDate()
     {
          $currentDate = $this->currentDate();
 
-           $sql = " SELECT usertoken, a_day_before, remind_a_day_before_status
-               FROM loan_product_purchases 
-               WHERE a_day_before = '$currentDate'
-               AND remind_a_day_before_status = 0
-               ORDER BY a_day_before ASC
-               LIMIT 10";
+            $sql = " SELECT 
+            loan_product_purchases.a_day_before, 
+            loan_product_purchases.remind_a_day_before_status, 
+            loan_product_purchases.a_day_before, 
+            loan_product_purchases.usertoken, 
+            tbl_store_allinstallment_product.transactionToken, 
+            tbl_store_allinstallment_product.productname 
+          FROM 
+            loan_product_purchases 
+            INNER JOIN tbl_store_allinstallment_product ON tbl_store_allinstallment_product.transactionToken = loan_product_purchases.token 
+          WHERE 
+            loan_product_purchases.a_day_before = '$currentDate' 
+            AND loan_product_purchases.remind_a_day_before_status = 0 
+          ORDER BY 
+          loan_product_purchases.a_day_before ASC 
+          LIMIT 
+            10
+            ";
+
+
    
            $stmt = $this->conn->query( $sql );
    
@@ -318,15 +334,13 @@ class ProductRepayment extends AbstractClasses
            foreach ( $remindADayBeforeDueDate as $key => $value ) {
                # code...
                $getUserdata = $this->getUserdata( $value[ 'usertoken' ] );
-               $getProductName = $this->getProductByItRelatedToken("l");
    
                try {
    
                    $mailer->NotifyUserOfProductLoanADayToDueDate(
                        $getUserdata[ 'mail' ],
                        $getUserdata[ 'fname' ],
-                       "productname"
-                   );
+                       $value['productname']                   );
                } catch ( Exception $e ) {
                    # Handle the error or log it as needed
                    $errorMessage = date( '[Y-m-d H:i:s] ' ) . 'Error sending mail loan for ' . __METHOD__ . '  ' . PHP_EOL . $e->getMessage();
@@ -340,6 +354,125 @@ class ProductRepayment extends AbstractClasses
            return $sentReminder;
        }
        
+
+           # UpdateReminderStatusIfMailSent: This method marks a REMINDER  field as '1' MEANING THAT mail has been sent
+
+     private function updateADayReminderStatusIfMailSent($updateADayReminderStatus)
+     {
+            try {
+    
+                $sql = 'UPDATE loan_product_purchases SET remind_a_day_before_status = 1
+                WHERE a_day_before = :currentDate';
+                $stmt = $this->conn->prepare( $sql );
+                $stmt->bindParam( ':currentDate', $updateADayReminderStatus );
+                $stmt->execute();
+    
+                return true;
+            } catch ( PDOException $e ) {
+                # Handle any exceptions here
+                echo  'Error while updating requests: ' . $e->getMessage();
+    
+                return false;
+            }
+            finally {
+                $stmt = null;
+            }
+        }
+
+
+
+         # REMIN USER A  WEEK  BEFORE DUE DATE....................
+       # This function below, i  had to  join loan_product_purchases && tbl_store_allinstallment_product 
+       # Together  mainly to get productname in a single query
+
+    public function remindAWeekBeforeDueDate()
+    {
+         $currentDate = $this->currentDate();
+
+            $sql = " SELECT 
+            loan_product_purchases.a_week_before, 
+            loan_product_purchases.remind_a_week_before_status, 
+            loan_product_purchases.a_week_before, 
+            loan_product_purchases.usertoken, 
+            tbl_store_allinstallment_product.transactionToken, 
+            tbl_store_allinstallment_product.productname 
+          FROM 
+            loan_product_purchases 
+            INNER JOIN tbl_store_allinstallment_product ON tbl_store_allinstallment_product.transactionToken = loan_product_purchases.token 
+          WHERE 
+            loan_product_purchases.a_week_before = '$currentDate' 
+            AND loan_product_purchases.remind_a_week_before_status = 0 
+          ORDER BY 
+          loan_product_purchases.a_week_before ASC 
+          LIMIT 
+            10
+            ";
+
+
+   
+           $stmt = $this->conn->query( $sql );
+   
+           if ( !$stmt->execute() ) {
+               return false;
+           }
+           $remindADayBeforeDueDate = $stmt->fetchAll( PDO::FETCH_ASSOC );
+   
+           if ( !$remindADayBeforeDueDate ) {
+               return false;
+           }
+   
+           $mailer = new  Mailer();
+           $sentReminder = false;
+           foreach ( $remindADayBeforeDueDate as $key => $value ) {
+               # code...
+               $getUserdata = $this->getUserdata( $value[ 'usertoken' ] );
+   
+               try {
+   
+                   $mailer->NotifyUserOfProductLoanAWeekToDueDate(
+                       $getUserdata[ 'mail' ],
+                       $getUserdata[ 'fname' ],
+                       $value['productname']                   );
+               } catch ( Exception $e ) {
+                   # Handle the error or log it as needed
+                   $errorMessage = date( '[Y-m-d H:i:s] ' ) . 'Error sending mail loan for ' . __METHOD__ . '  ' . PHP_EOL . $e->getMessage();
+                   error_log( $errorMessage, 3, 'crone.log' );
+               }
+   
+               $this->updateAWeekReminderStatusIfMailSent( $value[ 'a_week_before' ], false );
+               $sentReminder = true;
+           }
+           unset( $mailer );
+           return $sentReminder;
+       }
+       
+
+           # UpdateReminderStatusIfMailSent: This method marks a REMINDER  field as '1' MEANING THAT mail has been sent
+
+     private function updateAWeekReminderStatusIfMailSent($updateADayReminderStatus)
+     {
+            try {
+    
+                $sql = 'UPDATE loan_product_purchases SET remind_a_day_before_status = 1
+                WHERE a_day_before = :currentDate';
+                $stmt = $this->conn->prepare( $sql );
+                $stmt->bindParam( ':currentDate', $updateADayReminderStatus );
+                $stmt->execute();
+    
+                return true;
+            } catch ( PDOException $e ) {
+                # Handle any exceptions here
+                echo  'Error while updating requests: ' . $e->getMessage();
+    
+                return false;
+            }
+            finally {
+                $stmt = null;
+            }
+        }
+
+
+
 
 
    
