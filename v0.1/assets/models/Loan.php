@@ -428,7 +428,7 @@ class Loan extends AbstractClasses {
 public function getAllLoanRecord()
 {
     $dataArray = array();
-    $sql = ' SELECT * FROM loan_records  ORDER BY id DESC ';
+    $sql = ' SELECT * FROM loan_records  ORDER BY status = 0 DESC ';
     try {
         $stmt = $this->conn->query($sql);
         $stmt->execute();
@@ -667,7 +667,7 @@ public function approveLoanRequest($usertoken, $loanToken) {
 
 
 #disapproveLoanRequest::This method disapproveLoanRequest a  loan requests.
-public function disapproveLoanRequest($usertoken, $loanToken) {
+public function disapproveLoanRequest($usertoken, $loanToken, $message) {
     $status = 2;
 
     $getUserData = $this->getUserData($usertoken);
@@ -680,7 +680,7 @@ public function disapproveLoanRequest($usertoken, $loanToken) {
         }
 
         $mailer = new Mailer();
-        $mailer->notifyLoanDisapproval($getUserData['mail'], $getUserData['fname']);
+        $mailer->notifyLoanDisapproval($getUserData['mail'], $getUserData['fname'], $message);
         $_SESSION['err'] = "Disapproved";
 
     } catch (Exception $e) {

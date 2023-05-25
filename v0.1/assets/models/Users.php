@@ -439,6 +439,35 @@ class Users extends AbstractClasses
         return $dataArray;
     }
     
+
+     public function updateUserStatus($mail, $userType)
+{
+    try {
+        $sql = "UPDATE tblusers SET userType = :userType WHERE mail = :mail";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindParam(':userType', $userType);
+        $stmt->bindParam(':mail', $mail);
+        $stmt->execute();
  
+        if ($stmt->rowCount()  === 0) {
+
+            $_SESSION['err'] = "";
+            return false;
+        }
+
+        $_SESSION['err'] = " Status updated successfully";
+        return true;
+        
+    } catch (PDOException $e) {
+        $_SESSION['err'] = "Unable to update status: " . $e->getMessage();
+        return false;
+    
+    }finally{
+        $stmt = null;
+        $this->conn = null;
+    }
+
 
 }
+
+ }

@@ -2,7 +2,7 @@
 require_once( '../../assets/initializer.php' );
 $data = ( array ) json_decode( file_get_contents( 'php://input' ), true );
 
-$Loan = new Loan( $db );
+$Product = new Product( $db );
 
 #  Check for rge requests method
 if ( $_SERVER[ 'REQUEST_METHOD' ] !== 'POST' ) {
@@ -12,7 +12,7 @@ if ( $_SERVER[ 'REQUEST_METHOD' ] !== 'POST' ) {
 }
 
 #  Check for params  if matches required parametes
-$validKeys = [ 'apptoken', 'usertoken', 'loantoken', 'message'];
+$validKeys = [ 'apptoken', 'productToken'];
 $invalidKeys = array_diff( array_keys( $data ), $validKeys );
 if ( !empty( $invalidKeys ) ) {
     foreach ( $invalidKeys as $key ) {
@@ -21,7 +21,7 @@ if ( !empty( $invalidKeys ) ) {
 
     if ( !empty( $errors ) ) {
 
-        $Loan->respondUnprocessableEntity( $errors );
+        $Product->respondUnprocessableEntity( $errors );
         return;
     }
 
@@ -34,20 +34,21 @@ foreach ( $validKeys as $key ) {
     }
     if ( !empty( $errors ) ) {
 
-        $Loan->respondUnprocessableEntity( $errors );
+        $Product->respondUnprocessableEntity( $errors );
         return;
     } else {
-        $data[ $key ] = $Loan->sanitizeInput( $data[ $key ] );
+        $data[ $key ] = $Product->sanitizeInput( $data[ $key ] );
         # Sanitize input
     }
 }
 #Your method should be here
-$disapproveLoanRequest = $Loan->disapproveLoanRequest($data['usertoken'], $data['loantoken'],  $data['message']);
-if($disapproveLoanRequest){
-    $Loan->outputData(true, $_SESSION['err'], null);
-}else{
-    $Loan->outputData(false, $_SESSION['err'], null);
+$deleteProduct = $Product->deleteProduct($data['productToken']);
+if ( $deleteProduct ) {
+    $Product->outputData( true, $_SESSION[ 'err' ], null);
+} else {
+    $Product->outputData( false, $_SESSION[ 'err' ],  null );
+
 }
-unset( $Loan );
+unset( $Product );
 unset( $db );
 

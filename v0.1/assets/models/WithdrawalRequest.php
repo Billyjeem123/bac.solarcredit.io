@@ -17,8 +17,14 @@ class WithdrawalRequest  extends AbstractClasses
 
         #getAccountBalance.::Checks for Account Balnace 
         $getAccountBalance =  $this->getAccountBalance($data['usertoken']);
-        if ($getAccountBalance['totalBalannce'] < $data['amount'] ) {
+        if ($getAccountBalance['totalBalannce'] < $data['amount']) {
             $this->outputData(false, "Insufficient funds, Unable to process request", null);
+            exit;
+        }
+
+        $updateUserAccountBalance =   $this->updateUserAccountBalance($data['amount'], $data['usertoken'], $_ENV['transactionType'] = "debit");
+        if (!$updateUserAccountBalance) {
+            $this->outputData(false, $_SESSION['err'], null);
             exit;
         }
 
@@ -63,6 +69,9 @@ class WithdrawalRequest  extends AbstractClasses
                 $errorMessage = date('[Y-m-d H:i:s] ') . 'Error sending mail withdrawal for ' . __METHOD__ . '  ' . PHP_EOL . $e->getMessage();
                 error_log($errorMessage, 3, 'withdrawal.log');
             }
+
+            $message = 'Dear valued user, a deduction of ' . $this->formatCurrency($data['amount']) . ' naira  has been made from your wallet, for withdrawal purposes';
+            $this->notifyUserMessage($message, $data['usertoken']);
             $output = $this->outputData(true, 'Request sent,You shall be notified upon approval!', null);
 
             exit;
@@ -164,12 +173,6 @@ class WithdrawalRequest  extends AbstractClasses
     {
         try {
 
-            $updateUserAccountBalance =   $this->updateUserAccountBalance($data['amount'], $data['usertoken'], $_ENV['transactionType'] = "debit");
-            if (!$updateUserAccountBalance) {
-                $this->outputData(false, $_SESSION['err'], null);
-                exit;
-            }
-
             $sql = 'UPDATE tblwithdrawal  SET status = 1 WHERE id = :withrawaltoken ';
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':withrawaltoken', $data['withrawaltoken'],  PDO::PARAM_INT);
@@ -180,15 +183,12 @@ class WithdrawalRequest  extends AbstractClasses
                 exit;
             }
 
-            // if ($stmt->rowCount() === 0) {
-            //     return false;
-            // }
 
             $getUserdata = $this->getUserdata($data['usertoken']);
 
             $mailer = new Mailer;
 
-            $this->recordTransaction(uniqid(), $data['usertoken'], $data['amount'],$_ENV['creditOrDebit'] = "Debit" );
+            $this->recordTransaction(uniqid(), $data['usertoken'], $data['amount'], $_ENV['creditOrDebit'] = "Credit");
 
             try {
                 $mailer->NotifyUserofWithdrawalApproval($getUserdata['mail'], $getUserdata['fname'], $data['amount'], $data['accountNumber']);
@@ -212,6 +212,56 @@ class WithdrawalRequest  extends AbstractClasses
     }
 
 
+    #approveWithdrawalRequests ::This method approves a Withrdrawal requests
+    public function DiapproveWithdrawalRequest(array $data)
+    {
+        try {
 
-    
+            $sql = 'UPDATE tblwithdrawal  SET status = 2 WHERE id = :withrawaltoken ';
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':withrawaltoken', $data['withrawaltoken'],  PDO::PARAM_INT);
+
+            if (!$stmt->execute()) {
+                $_SESSION['err'] = 'Unable to update withdrwal status';
+                return false;
+                exit;
+            }
+
+            $updateUserAccountBalance =   $this->updateUserAccountBalance($data['amount'], $data['usertoken'], $_ENV['transactionType'] = "credit");
+            if (!$updateUserAccountBalance) {
+                $this->outputData(false, $_SESSION['err'], null);
+                exit;
+            }
+
+
+            $getUserdata = $this->getUserdata($data['usertoken']);
+
+            $mailer = new Mailer;
+
+            $this->recordTransaction(uniqid(), $data['usertoken'], $data['amount'], $_ENV['creditOrDebit'] = "Credit");
+
+            try {
+                $mailer->NotifyUserofWithdrawalDiapproval($getUserdata['mail'], $getUserdata['fname'], $data['amount'], $data['message']);
+            } catch (Exception $e) {
+                # Handle the error or log it as needed
+                $errorMessage = date('[Y-m-d H:i:s] ') . "Error sending mail  for " . __METHOD__ . "  " . PHP_EOL . $e->getMessage();
+                error_log($errorMessage, 3, 'withdrawal.log');
+                echo "run";
+            }
+
+            $message = 'Dear valued user, we regret to inform you that your recent withdrawal request has been declined' . $this->formatCurrency($data['amount']) . ' naira  has been reversed and credited back to your account';
+
+            $this->notifyUserMessage($message, $data['usertoken']);
+
+            $_SESSION['err'] = 'Disapproved';
+        } catch (Exception $e) {
+            $_SESSION['err'] = 'Unable to process request:' . $e->getMessage();
+            return false;
+        } finally {
+            $stmt  = null;
+            $this->conn = null;
+            unset($mailer);
+        }
+        return true;
+    }
 }

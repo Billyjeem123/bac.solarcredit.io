@@ -552,7 +552,7 @@ class ProductRepayment extends AbstractClasses
 
     public function celebrateProductLoanSuccess() {
 
-        $sql = "SELECT usertoken, isCompletedStatus, total_amount, amount_debited_so_far FROM 
+        $sql = "SELECT usertoken, token, isCompletedStatus, total_amount, amount_debited_so_far FROM 
         tbl_installment_purchases WHERE isCompletedStatus = 0";
 
 
@@ -611,7 +611,7 @@ class ProductRepayment extends AbstractClasses
     private function UpdateIsCompletedIfHonored( $usertoken )
  {
         try {
-            $sql = 'UPDATE loan_records SET isCompletedStatus = 1
+            $sql = 'UPDATE tbl_installment_purchases SET isCompletedStatus = 1
              WHERE usertoken = :usertoken';
             $stmt = $this->conn->prepare( $sql );
             $stmt->bindParam( ':usertoken', $usertoken );

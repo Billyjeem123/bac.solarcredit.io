@@ -2,7 +2,7 @@
 require_once( '../../assets/initializer.php' );
 $data = ( array ) json_decode( file_get_contents( 'php://input' ), true );
 
-$Loan = new Loan( $db );
+$WithdrawalRequest = new WithdrawalRequest( $db );
 
 #  Check for rge requests method
 if ( $_SERVER[ 'REQUEST_METHOD' ] !== 'POST' ) {
@@ -12,7 +12,7 @@ if ( $_SERVER[ 'REQUEST_METHOD' ] !== 'POST' ) {
 }
 
 #  Check for params  if matches required parametes
-$validKeys = [ 'apptoken', 'usertoken', 'loantoken', 'message'];
+$validKeys = [ 'amount', 'usertoken', 'withrawaltoken', 'message'];
 $invalidKeys = array_diff( array_keys( $data ), $validKeys );
 if ( !empty( $invalidKeys ) ) {
     foreach ( $invalidKeys as $key ) {
@@ -21,7 +21,7 @@ if ( !empty( $invalidKeys ) ) {
 
     if ( !empty( $errors ) ) {
 
-        $Loan->respondUnprocessableEntity( $errors );
+        $WithdrawalRequest->respondUnprocessableEntity( $errors );
         return;
     }
 
@@ -34,20 +34,21 @@ foreach ( $validKeys as $key ) {
     }
     if ( !empty( $errors ) ) {
 
-        $Loan->respondUnprocessableEntity( $errors );
+        $WithdrawalRequest->respondUnprocessableEntity( $errors );
         return;
     } else {
-        $data[ $key ] = $Loan->sanitizeInput( $data[ $key ] );
+        $data[ $key ] = $WithdrawalRequest->sanitizeInput( $data[ $key ] );
         # Sanitize input
     }
 }
 #Your method should be here
-$disapproveLoanRequest = $Loan->disapproveLoanRequest($data['usertoken'], $data['loantoken'],  $data['message']);
-if($disapproveLoanRequest){
-    $Loan->outputData(true, $_SESSION['err'], null);
+$approveWithdrawalRequest = $WithdrawalRequest->DiapproveWithdrawalRequest($data);
+if($approveWithdrawalRequest){
+    $WithdrawalRequest->outputData(true, $_SESSION['err'], null);
+    exit;
 }else{
-    $Loan->outputData(false, $_SESSION['err'], null);
+    $WithdrawalRequest->outputData(false, $_SESSION['err'], null);
 }
-unset( $Loan );
+unset( $WithdrawalRequest );
 unset( $db );
 

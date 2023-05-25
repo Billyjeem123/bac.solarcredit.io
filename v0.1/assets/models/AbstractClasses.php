@@ -164,6 +164,36 @@ abstract class AbstractClasses
         return $array;
     }
 
+
+
+    #sumAllUsersAccountWallet:: This method Sums all avilable money  in users wallet
+    public function sumAllUsersAccountWallet()
+    {
+        try {
+            $db = new Database();
+            $sql = 'SELECT SUM(amount) AS totalBalance FROM tblwallet';
+            $stmt = $db->connect()->query($sql);
+    
+            if ($stmt->rowCount() == 0) {
+                http_response_code(404);
+                return false;
+            }
+    
+            $totalBalance = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $alltotalBalance = $this->formatCurrency($totalBalance['totalBalance']);
+
+        } catch (PDOException $e) {
+            $this->respondWithInternalError("Error: " . $e->getMessage());
+            return false;
+        } finally {
+            $stmt = null;
+            unset($db);
+        }
+        return $alltotalBalance;
+    }
+    
+
     #This method verifies a user verifyNextOfKin
 
     public function verifyNextOfKin($usertoken)

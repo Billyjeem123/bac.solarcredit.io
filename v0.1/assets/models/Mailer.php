@@ -409,7 +409,7 @@ class Mailer
         return true;
     }
 
-    public function notifyLoanDisapproval($email, $fname)
+    public function notifyLoanDisapproval($email, $fname, $message)
     {
 
         require_once($_SERVER['DOCUMENT_ROOT'] . '/solar/vendor/autoload.php');
@@ -440,12 +440,14 @@ class Mailer
 
         $body = "Dear $fname, <br><br>";
 
-        $body .= 'We regret to inform you that your recent loan application has been disapproved. We understand that this news may be disappointing, but we want to assure you that our decision was based on a careful evaluation of your application and our lending policies..<br><br>';
-
+        $body .= 'We regret to inform you that your recent loan application has been disapproved. We understand that this news may be disappointing, but we want to assure you that our decision was based on a careful evaluation of your application and our lending policies.<br><br>';
+        
+        $body .= 'After a thorough review, we have determined that the reason for the disapproval of your loan application is: '. $message.' This decision was made in accordance with our internal guidelines and criteria.<br><br>';
+        
         $body .= 'Please note that the disapproval of your loan application does not reflect on your creditworthiness or financial situation. We encourage you to continue to explore other options that may be available to you.<br><br>';
-
+        
         $body .= "If you have any questions about the reasons for the disapproval of your application, please don't hesitate to contact our customer support team. We will do our best to provide you with a clear explanation of our decision.<br><br>";
-
+        
         $body .= ' We appreciate your interest in our lending service and hope that you will consider us for your future financial need. <br><br>';
 
         $body .= 'Best regards, <br><br>';
@@ -1176,56 +1178,62 @@ class Mailer
 
 
 
-    public function NotifyUserofWithdrawalDisaAPROVAL($email, $fname,  $amount, $bankname)
-    {
+    
+    
+    
+   public function NotifyUserofWithdrawalDiapproval($email, $fname,  $amount, $message)
+   {
 
-        require_once($_SERVER['DOCUMENT_ROOT'] . '/solar/vendor/autoload.php');
+       require_once($_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php');
 
-        $mail = new PHPMailer(true);
+       $mail = new PHPMailer(true);
 
-        $mail->isSMTP();
+       $mail->isSMTP();
 
-        $mail->Host = $_ENV['HOST_NAME'];
+       $mail->Host = $_ENV['HOST_NAME'];
 
-        $mail->SMTPAuth = true;
+       $mail->SMTPAuth = true;
 
-        $mail->Username = $_ENV['SMTP_USERNAME'];
+       $mail->Username = $_ENV['SMTP_USERNAME'];
 
-        $mail->Password = $_ENV['SMTP_PWORD'];
+       $mail->Password = $_ENV['SMTP_PWORD'];
 
-        $mail->SMTPSecure = 'ssl';
+       $mail->SMTPSecure = 'ssl';
 
-        $mail->Port = 465;
+       $mail->Port = 465;
 
-        $mail->setFrom($_ENV['APP_MAIL'], $_ENV['APP_NAME']);
+       $mail->setFrom($_ENV['APP_MAIL'], $_ENV['APP_NAME']);
 
-        $mail->addAddress($email, $fname);
+       $mail->addAddress($email, $fname);
 
-        $mail->isHTML(true);
+       $mail->isHTML(true);
 
-        $mail->Subject = "Withdrawal Request Approved";
+       $mail->Subject = "Withdrawal Request Disapproved";
 
-        $body = "Dear $fullname, <br><br>";
+       $body = "Dear $fname, <br><br>";
 
-        $body .= "We are delighted to notify you that your withdrawal request has been authorized. The specified amount of $amount has been transferred to the following account number $bankname, and the corresponding deduction has been made from your wallet. <br><br>";
+       $body .= "We regret to inform you  that your withdrawal request has been declined.<br><br>";
 
-        $body .= " Thank you for using our service, and please don't hesitate to contact us if you have any questions or concerns.<br><br>";
+       $body .= " The specified amount of $amount naira has been reversed and credited back to your account<br><br>";
 
-        $body .= " Best regards, <br> <br> ";
+       $body .= "The reason for the decline is: $message.<br><br>";
 
-        $body .= ' Best regards, <br> <br> ';
+       $body .= " Thank you for using our service, and please don't hesitate to contact us if you have any questions or concerns.<br><br>";
 
-        $body .= ' Team ' .  $_ENV['APP_NAME'] . ' ';
+       $body .= ' Best regards, <br> <br> ';
 
-        $mail->Body = $body;
+       $body .= ' Team ' .  $_ENV['APP_NAME'] . ' ';
 
-        if (!$mail->send()) {
-            $this->outputData(false, ' Email could not be sent', $mail->ErrorInfo);
-            return false;
-        } else {
-            return true;
-        }
-    }
+       $mail->Body = $body;
+
+       if (!$mail->send()) {
+           $this->outputData(false, ' Email could not be sent', $mail->ErrorInfo);
+           return false;
+       } else {
+           return true;
+       }
+   }
+
 
 
 
@@ -1442,7 +1450,7 @@ class Mailer
         foreach ($boughtBought as $product) {
             $body .= "<li>Product Name: <b>" . $product['productname'] . "</b></li>";
             $body .= "<li>Price: <b>" . $product['price'] . "</b></li>";
-            $body .= "<br><br>";
+            $body .= "<br>";
         }
         $body .= "</ul>";
         
@@ -1508,7 +1516,7 @@ class Mailer
         foreach ($boughtBought as $product) {
             $body .= "<li>Product Name: <b>" . $product['productname'] . "</b></li>";
             $body .= "<li>Price: <b>" . $product['price'] . "</b></li>";
-            $body .= "<br><br>";
+            $body .= "<br>";
         }
         $body .= "</ul>";
         
@@ -1567,7 +1575,7 @@ class Mailer
         $body .= "<ul>";
         foreach ($boughtBought as $product) {
             $body .= "<li>Product Name: <b>" . $product['productname'] . "</b></li>";
-            $body .= "<br><br>";
+            $body .= "<br>";
         }
         $body .= "</ul>";
         
@@ -1576,8 +1584,6 @@ class Mailer
         $body.= "We extend our heartfelt appreciation for choosing us as your preferred provider for installment purchases. Your satisfaction is our utmost priority, and we are committed to delivering exceptional service at every step.<br><br>";
 
         $body.= "If you have any questions or need further assistance regarding your installment plan or any other matter, our dedicated support team is here to help. We want to ensure that your experience with us continues to be smooth and enjoyable.<br><br>";
-
-        $body .= " If you have any questions or need further assistance regarding your installment plan or any other matter, our dedicated support team is here to help. We want to ensure that your experience with us continues to be smooth and enjoyable.<br><br>";
         
         $body .= "Thank you for choosing " . $_ENV['APP_NAME'] . " for your financial needs.<br><br>";
         
