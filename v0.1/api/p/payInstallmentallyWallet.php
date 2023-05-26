@@ -103,6 +103,7 @@
      $mailer = new Mailer();
      $count = 0;
      
+     
      foreach ($data['productBought'] as $key => $allProducts) {
 
          if ($allProducts['productType'] === "Userproduct") {

@@ -11,7 +11,7 @@ if ( $_SERVER[ 'REQUEST_METHOD' ] !== 'POST' ) {
     exit();
 }
 
-$requiredKeys = [ 'catid', 'location', 'pname', 'apptoken', 'pdesc', 'brand', 'condition', 'price', 'pquantity', 'pimage', 'usertoken', 'volt', 'unit', 'size' ];
+$requiredKeys = ['catid', 'location', 'pname', 'apptoken', 'pdesc', 'brand', 'condition', 'price', 'pquantity', 'pimage', 'usertoken', 'volt', 'unit', 'size'];
 $optionalKeys = ['phone'];
 $validKeys = array_merge($requiredKeys, $optionalKeys);
 $invalidKeys = array_diff(array_keys($data), $validKeys);
@@ -21,14 +21,13 @@ if (!empty($invalidKeys)) {
             $errors[] = "$key is not a valid input field";
         }
     }
-
     if (!empty($errors)) {
         $product->respondUnprocessableEntity($errors);
         return;
     }
 }
 
-#  Check for fields  if empty
+# Check for fields if empty
 foreach ($requiredKeys as $key) {
     if (empty($data[$key])) {
         $errors[] = ucfirst($key) . ' is required';
@@ -37,13 +36,17 @@ foreach ($requiredKeys as $key) {
         # Sanitize input
     }
 }
-# Check for optional  fields
+
+# Check for optional fields
 foreach ($optionalKeys as $key) {
-    if (!empty($data[$key])) {
+    if (!isset($data[$key])) {
+        $data[$key] = ''; // Set empty string if the optional field is not present
+    } else {
         $data[$key] = $product->sanitizeInput($data[$key]);
         # Sanitize input
     }
 }
+
 if (!empty($errors)) {
     $product->respondUnprocessableEntity($errors);
     return;

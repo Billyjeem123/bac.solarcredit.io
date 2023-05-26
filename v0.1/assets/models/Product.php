@@ -1152,7 +1152,7 @@ class Product extends AbstractClasses
     {
         $dataArray = array();
         try {
-            $sql = "SELECT id, dueDate, priceToPay, debit_status, remind_a_day_before_status, 
+            $sql = "SELECT id, dueDate, priceToPay, payyment_status, remind_a_day_before_status, 
         remind_a_week_before_status, token FROM loan_product_purchases WHERE token = :token";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':token', $token);
@@ -1168,7 +1168,7 @@ class Product extends AbstractClasses
                     'dateToPayId' => $value['id'],
                     'dueDate' => $value['dueDate'],
                     'priceExpectedToPay' => $this->formatCurrency($value['priceToPay']),
-                    'paymentStatus' => ($value['debit_status'] == 1) ? 'Paid' : (($value['debit_status'] == 2) ? 'Not-Paid' : 'Pending'),
+                    'paymentStatus' => ($value['payyment_status'] == 1) ? 'Paid' : (($value['payyment_status'] == 2) ? 'Not-Paid' : 'Pending'),
                     'remind_a_day_before_status' => ($value['remind_a_day_before_status'] == 1) ? 'Sent.' : 'Notification-pending.',
                     'remind_a_week_before_status' => ($value['remind_a_week_before_status'] == 1) ? 'Sent.' : 'Notification-pending.',
                     'token' => $value['token'],
@@ -1183,37 +1183,55 @@ class Product extends AbstractClasses
         }
     }
 
-    #getAllLoanPurchasedGoods ::This method ferches ALL prodct loaned gooda
-
+    
     public function getAllLoanPurchasedGoods()
     {
         $dataArray = array();
         try {
-            $sql = ' SELECT  *  FROM tbl_installment_purchases ';
-            $sql .= ' ORDER BY id DESC';
+            $installmentally = 'Paid-Installmentally';
+            $sql = "SELECT tblproduct_buyers.*, records.*, productbought.*
+            FROM tblproduct_buyers
+            INNER JOIN tbl_installment_purchases as records ON records.token = tblproduct_buyers.transactionToken
+            INNER JOIN tbl_store_allinstallment_product as productbought ON productbought.transactionToken =          tblproduct_buyers.transactionToken
+            AND tblproduct_buyers.payment_type = :payment_type ";
             $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':payment_type', $installmentally, PDO::PARAM_STR);
             if (!$stmt->execute()) {
                 $stmt = null;
-                $_SESSION['err'] = 'Something went wrong, please try again..';
+                $_SESSION['err'] = 'Something went wrong, please  try again..';
                 return false;
             } else {
-                if ($notifyArray = $stmt->fetchAll(PDO::FETCH_ASSOC)) {
-                    foreach ($notifyArray as $user) {
-                        $MonnthsScheduledTPayInstallmentally = $this->MonnthsEstimatedToPayInstallmentally($user['token']);
-                        $productBought = $this->getGoodsPurchasedByUserOnInstallments($user['token']);
-                        $buyerInfo = $this->getUserdata($user['usertoken']);
+
+                if ($stmt->rowCount() === 0) {
+                    $this->outputData(false, 'No record found', null);
+                    exit;
+                }
+                if ($loanedProducut = $stmt->fetchAll(PDO::FETCH_ASSOC)) {
+                    foreach ($loanedProducut as $user) {
+                        $costprice = $user['price'] * $user['productQuantity'];
+                        $MonnthsScheduledTPayInstallmentally = $this->MonnthsEstimatedToPayInstallmentally($user['transactionToken']);
                         $array = array(
-                            'product_loan_id' => $user['id'],
+
                             'total_amount' => $this->formatCurrency($user['total_amount']),
+                            'amountpaid' => $this->formatCurrency($user['amountpaid']),
+                            'amountDebitedSoFar' => $this->formatCurrency($user['amount_debited_so_far']),
                             'isCompletedStatus' => ($user['isCompletedStatus'] == 1) ? 'Payment completed.' : 'Payment ongoing.',
-                            'amountDebitedSoFar' =>    $this->formatCurrency($user['amount_debited_so_far']),
                             'subscribedPlan' => $user['duration'] . ' ' . 'months',
-                            'amountToPayMonthly' => $this->formatCurrency($user['amontMonthly']),
-                            'amountRemmainning_thousand' => $this->formatCurrency($user['amountRem']),
-                            'WhenEstimatedToBalanceUp' => $user['finished_date'],
-                            'MonnthsEstimatedToPayInstallmentally   ' => $MonnthsScheduledTPayInstallmentally,
-                            'productBought' => $productBought,
-                            'buyerInfo' => $buyerInfo
+                            'amountToPayMonthly_thousand' => $this->formatCurrency($user['amontMonthly']),
+                            // 'amountRemmainning_thousand' => $this->formatCurrency($user['amountRem']),
+                            'dateEstimatedToFinish' => $user['finished_date'],
+                            'orderid' => ($user['orderid']),
+                            'productToken' => $user['productToken'],
+                            'productQuantity' => $user['productQuantity'],
+                            'productname' => $user['productname'],
+                            'modeOfPayment' => $user['modeOfPayment'],
+                            'productimage' => ($user['productimage']),
+                            'productprice' => $this->formatCurrency($user['price']),
+                            'costPrice_thosand' => $this->formatCurrency($costprice),
+                            'datePurchased' => $this->formatDate($user['time']),
+                            'status' => ($user['status'] == 1 ? 'Acknowledged' : 'Pending'),
+                            'MonnthsEstimatedToPayInstallmentally' => $MonnthsScheduledTPayInstallmentally,
+
                         );
                         array_push($dataArray, $array);
                     }
@@ -1223,10 +1241,17 @@ class Product extends AbstractClasses
                 }
             }
         } catch (PDOException $e) {
-            echo $_SESSION['err'] = $e->getMessage();
+            $_SESSION['err'] = $e->getMessage();
             return false;
+        } finally {
+            $stmt = null;
+            $this->conn = null;
         }
     }
+
+
+
+
     public function personalisedDashboard()
     {
 
@@ -1403,7 +1428,7 @@ class Product extends AbstractClasses
                 'productname' => $itemsFound['pname'],
                 'productToken' => $itemsFound['putoken'],
                 'productDesc' => $itemsFound['pdesc'],
-                'productPrice' => $this->formatCurrency($itemsFound['price']),
+                'productPrice_thousand' => $this->formatCurrency($itemsFound['price']),
                 'productPrice_normal' =>($itemsFound['price']),
                 'productImage' => $itemsFound['imageUrl'],
             ];
