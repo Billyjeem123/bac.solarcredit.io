@@ -46,12 +46,12 @@ $getUserData = $user->getUserdata($data['usertoken']);
 $getKYCData = $user->getKYCData($data['usertoken']);
 $getAllHistoryLogs = $user->getAllHistoryLogs($data['usertoken']);
 
-if ( $getUserdata !== false ) {
+if ( $getUserData !== false ) {
 
     $userBioData = [
         'success' => true,
         'message' => 'Fetch user data',
-        'userData' => $getUserdata,
+        'userData' => $getUserData,
         'kycData' => $getKYCData,
         'getUserHistoryLogs' => $getAllHistoryLogs
     ];

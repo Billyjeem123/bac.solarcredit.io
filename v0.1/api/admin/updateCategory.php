@@ -1,8 +1,8 @@
 <?php
-require_once( '../assets/initializer.php' );
+require_once( '../../assets/initializer.php' );
 $data = ( array ) json_decode( file_get_contents( 'php://input' ), true );
 
-$user = new Users( $db );
+$Category = new Category( $db );
 
 #  Check for rge requests method
 if ( $_SERVER[ 'REQUEST_METHOD' ] !== 'POST' ) {
@@ -12,7 +12,7 @@ if ( $_SERVER[ 'REQUEST_METHOD' ] !== 'POST' ) {
 }
 
 #  Check for params  if matches required parametes
-$validKeys = [ 'usertoken',  'apptoken' ];
+$validKeys = [ 'catid', 'catname', 'apptoken'];
 $invalidKeys = array_diff( array_keys( $data ), $validKeys );
 if ( !empty( $invalidKeys ) ) {
     foreach ( $invalidKeys as $key ) {
@@ -21,7 +21,7 @@ if ( !empty( $invalidKeys ) ) {
 
     if ( !empty( $errors ) ) {
 
-        $user->respondUnprocessableEntity( $errors );
+        $Category->respondUnprocessableEntity( $errors );
         return;
     }
 
@@ -34,35 +34,21 @@ foreach ( $validKeys as $key ) {
     }
     if ( !empty( $errors ) ) {
 
-        $user->respondUnprocessableEntity( $errors );
+        $Category->respondUnprocessableEntity( $errors );
         return;
     } else {
-        $data[ $key ] = $user->sanitizeInput( $data[ $key ] );
+        $data[ $key ] = $Category->sanitizeInput( $data[ $key ] );
         # Sanitize input
     }
 }
 #Your method should be here
-$getUserData = $user->getAllOutstandingFee($data['usertoken']);
-$ecodeUserBioData = json_encode($getUserData);
-    echo $ecodeUserBioData;
-
-exit;
-if ( $getUserData !== false ) {
-
-    $userBioData = [
-        'success' => true,
-        'message' => 'Fetch user data',
-        'userData' => $getUserData,
-    ];
-
-    $ecodeUserBioData = json_encode($userBioData);
-    echo $ecodeUserBioData;
-
-} else {
-    $user->outputData( false, $_SESSION[ 'err' ],  null );
-
+$approveCategory = $Category->updateCategory($data);
+if($approveCategory){
+    $Category->outputData(true, $_SESSION['err'], null);
+    exit;
+}else{
+    $Category->outputData(false, $_SESSION['err'], null);
 }
-
-unset( $user );
+unset( $Category );
 unset( $db );
 

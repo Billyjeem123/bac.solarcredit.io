@@ -333,6 +333,7 @@ abstract class AbstractClasses
             $getkycStatus = $this->getkycStatus($usertoken);
             $getAccountBalance = $this->getAccountBalance($usertoken);
             $verifyNextOfKin = $this->verifyNextOfKin($usertoken);
+            $getAllOutstandingFee = $this->getAllOutstandingFee($usertoken);
 
             $array = [
                 'fname' => $user['fname'],
@@ -345,6 +346,7 @@ abstract class AbstractClasses
                 'availableBalance' => $getAccountBalance['totalBalannce'],
                 'nextOfKin' => $verifyNextOfKin,
                 'availableBalance_thousand' => $this->formatCurrency($getAccountBalance['totalBalannce']),
+                'getAllOutstandingFee' => $getAllOutstandingFee
             ];
         } catch (PDOException $e) {
             $_SESSION['err'] = 'Error retrieving user details: ' . $e->getMessage();
@@ -631,6 +633,108 @@ abstract class AbstractClasses
             unset($db);
         }
     }
+
+
+    public function getAllOutstandingFee($usertoken)
+    {
+        $checkLoanForUserDebt = $this->checkLoanForUserDebt($usertoken);
+        $checkProductLoanForUserDebt = $this->checkProductLoanForUserDebt($usertoken);
+    
+        $getOutstandingTotal = $checkLoanForUserDebt + $checkProductLoanForUserDebt;
+    
+        return $this->formatCurrency($getOutstandingTotal);
+    }
+    
+#checkLoanForUserDebt:: This method checks for user loan of amount owned
+public function checkLoanForUserDebt($usertoken)
+{
+    try {
+        $db = new Database();
+        $sql = "SELECT usertoken, amountToBorrow, amount_debited_so_far FROM loan_records WHERE usertoken = :usertoken";
+        $stmt = $db->connect()->prepare($sql);
+        $stmt->bindParam(':usertoken', $usertoken);
+
+        if (!$stmt->execute()) {
+            return false;
+        }
+
+        if ($stmt->rowCount()  == 0) {
+            return 0.00;
+        }
+        $totalAmountOwing = 0; // Variable to hold the total amount owed
+
+        $loanRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        foreach ($loanRecords as $record) {
+            $amountToBorrow = $record['amountToBorrow'];
+            $amountDebitedSoFar = $record['amount_debited_so_far'];
+
+            if ($amountDebitedSoFar === $amountToBorrow) {
+                return 0.00;
+            } else {
+                $amountOwing = $amountToBorrow - $amountDebitedSoFar;
+                $totalAmountOwing += $amountOwing; // Add the amount owing to the total
+            }
+        }
+
+        if ($totalAmountOwing > 0) {
+            return $totalAmountOwing;
+        }
+    } catch (PDOException $e) {
+        // Handle the exception here
+        return false;
+    }finally{
+        $stmt = null;
+        unset($db);
+    }
+}
+
+
+
+
+   #checkProductLoanForUserDebt:: This method checks for user loan of amount owned
+public function checkProductLoanForUserDebt($usertoken)
+{
+    try {
+        $db = new Database();
+        $sql = "SELECT total_amount, usertoken, amount_debited_so_far 
+                 FROM tbl_installment_purchases WHERE usertoken = :usertoken";
+        $stmt = $db->connect()->prepare($sql);
+        $stmt->bindParam(':usertoken', $usertoken);
+
+        if ($stmt->execute()) {
+            $loanRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $totalAmountOwing = 0; // Variable to hold the total amount owed
+
+            foreach ($loanRecords as $record) {
+                $total_amount = $record['total_amount'];
+                $amountDebitedSoFar = $record['amount_debited_so_far'];
+
+                if ($amountDebitedSoFar == $total_amount) {
+                    return 0.00;
+                } else {
+                    $amountOwing = $total_amount - $amountDebitedSoFar;
+                    $totalAmountOwing += $amountOwing; // Add the amount owing to the total
+                }
+            }
+
+            if ($totalAmountOwing > 0) {
+                return $totalAmountOwing;
+            }
+        }
+
+        return 0;
+    } catch (PDOException $e) {
+        // Handle the exception here
+        return false;
+    }finally{
+        $stmt = null;
+        unset($db);
+    }
+}
+
 
     public function outputData($success = null, $message = null, $data = null)
     {
