@@ -1269,6 +1269,10 @@ class Product extends AbstractClasses
 
          $sumAllUsersAccountWallet = $this->sumAllUsersAccountWallet();
 
+         $getAllProductPaidOnce = $this->getAllProductPaidOnce();
+
+         $getAllPendingInstallmentallProduct = $this->getAllPendingInstallmentallProduct();
+
         return [
             'getAllUsersCount' => $getAllUsersCount,
             'getAllProductCount' => $getAllProductCount,
@@ -1276,11 +1280,44 @@ class Product extends AbstractClasses
             'getAllProductPurchasedOnce' => $getAllProductPurchasedOnce,
             'getAllProductPurchasedInstallmentally' => $getAllProductPurchasedInstallmentally,
             'getAllUnapprovedLoan' => $getAllUnapprovedLoanCount,
-            'getAllUsersAccountWallet' => $sumAllUsersAccountWallet
+            'getAllUsersAccountWallet' => $sumAllUsersAccountWallet,
+            'getAllProductPaidOnce' => $getAllProductPaidOnce,
+             'getAllPendingInstallmentallProduct' => $getAllPendingInstallmentallProduct
         ];
     }
 
+    public function getAllPendingInstallmentallProduct()
+    {
 
+        $sql = "SELECT COUNT(id) AS productCount FROM tbl_store_allinstallment_product WHERE status = 0";
+        $stmt = $this->conn->prepare($sql);
+
+        if (!$stmt->execute()) {
+            return false;
+        }
+
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $productCount = $result['productCount'];
+
+        return $productCount;
+    }
+
+
+    public function getAllProductPaidOnce()
+    {
+
+        $sql = "SELECT COUNT(id) AS productCount FROM tblpurchasedonce WHERE status = 0";
+        $stmt = $this->conn->prepare($sql);
+
+        if (!$stmt->execute()) {
+            return false;
+        }
+
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $productCount = $result['productCount'];
+
+        return $productCount;
+    }
 
 
     public function getAllUnapprovedLoanCount()
